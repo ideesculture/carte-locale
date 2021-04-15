@@ -1,0 +1,212 @@
+
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+	<meta charset="utf-8">
+    <title>Carte locale</title>
+	<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <meta name="description" content="Ce tutoriel Leaflet explique comment utiliser la librairie pour contrôler le comportement d'une carte en ajoutant/supprimant des couches d'information via différents Markers">
+	<meta property="og:site_name" content="DataVis" />
+	<meta property="og:locale" content="fr_FR" />
+	<meta property="og:title" content="Leaflet Map - Control">
+    <meta property="og:description" content="Ce tutoriel Leaflet explique comment utiliser la librairie pour contrôler le comportement d'une carte en ajoutant/supprimant des couches d'information via différents Markers">
+	<meta property="og:type" content="article" />
+	<meta property="og:image" content="https://www.datavis.fr/maps/leaflet-control.jpg" />
+	<meta property="og:url" content="https://www.datavis.fr/index.php?page=leaflet-control">
+	<meta name="twitter:card" content="summary_large_image" />
+	<meta name="twitter:description" content="Ce tutoriel Leaflet explique comment utiliser la librairie pour contrôler le comportement d'une carte en ajoutant/supprimant des couches d'information via différents Markers" />
+	<meta name="twitter:title" content="Leaflet Map - Control" />
+	<meta name="twitter:image" content="https://www.datavis.fr/maps/leaflet-control.jpg" />
+
+    <link rel="shortcut icon" href="assets/ico/favicon.ico">
+
+    <link href='https://fonts.googleapis.com/css?family=Lato:300,400,700,300italic,400italic' rel='stylesheet' type='text/css'>
+	<!-- Not use now, see style.css for h1, h2...-->
+    <!-- <link href='http://fonts.googleapis.com/css?family=Raleway:400,300,700' rel='stylesheet' type='text/css'> -->
+
+    <!--scripts loaded here-->
+    
+	<!-- Bootstrap Tooltip require tether.js -->
+    <script src="//cdnjs.cloudflare.com/ajax/libs/tether/1.2.0/js/tether.min.js"></script>
+    <script src="https://code.jquery.com/jquery-3.2.1.js" integrity="sha256-DZAnKJ/6XZ9si04Hgrsxu/8s717jcIzLy3oi35EouyE=" crossorigin="anonymous"></script>
+	<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css" integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
+	<script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js" integrity="sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl" crossorigin="anonymous"></script>
+		
+	<!-- Bootstrap CSS local fallback -->
+	<script>
+    	$(document).ready(function() {
+   			var bodyColor = $('body').css('color');
+    		if (bodyColor != 'rgb(51, 51, 51)') {
+    			$("head").prepend('<link rel="stylesheet" href="assets/css/bootstrap.min.css">');
+			}
+		});
+  	</script>
+	
+	<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.6.3/css/font-awesome.css" integrity="sha512-Mo79lrQ4UecW8OCcRUZzf0ntfMNgpOFR46Acj2ZtWO8vKhBvD79VCp3VOKSzk6TovLg5evL3Xi3u475Q/jMu4g==" crossorigin="anonymous" />
+	<link rel="stylesheet" href="assets/css/styles.css" />
+</head>
+<body>
+	<link type="text/css" rel="stylesheet" href="assets/lib/highlight/styles/agate.css"/>
+<script type="text/javascript" src="assets/lib/highlight/highlight.pack.js"></script>
+<script>
+	hljs.configure({tabReplace: '    '})
+	hljs.initHighlightingOnLoad();
+</script>
+
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.6.0/dist/leaflet.css" integrity="sha512-xwE/Az9zrjBIphAcBb3F6JVqxf46+CDLwfLMHloNu6KEQCAWi6HcDUbeOfBIptF7tcCzusKFjFw2yuvEpDL9wQ==" crossorigin=""/>
+<script src="assets/js/leaflet.js" integrity="sha512-gZwIG9x3wUXg2hdXF6+rVkLF/0Vi9U8D2Ntg4Ga5I5BZpVkVxlJWbSQtXPSiUTtC0TjtGOmxa1AJPuV0CPthew==" crossorigin=""></script>
+<script src="maps/leaflet-control/geojson-data.js"></script>
+<script src="maps/leaflet-control/icon-provider.js"></script>
+
+<style>
+	#map {
+		width: 100%;
+		height: 100%;
+		margin-bottom: 10px;
+		position: relative;
+	}
+	
+	.command {
+		padding: 4px 6px;
+		background: white;
+		font: 14px/16px Arial, Helvetica, sans-serif;
+		background: rgba(255,255,255,0.96);
+		box-shadow: 0 0 15px rgba(0,0,0,0.8);
+		border-radius: 5px;
+		min-width: 200px;
+	}
+</style>
+
+<div id="map"></div>
+
+<script type="text/javascript">
+	
+	// Data correction
+	for (var i = 0; i < geojson.length; i++) {
+		geojson[i]["type"] = "Feature";
+		geojson[i]["properties"] = geojson[i]["fields"];
+		if (geojson[i]["properties"]["url"] !== undefined && geojson[i]["properties"]["url"].indexOf("http://") < 0) {
+			geojson[i]["properties"]["url"] = 'http://' + geojson[i]["properties"]["url"];
+		}
+	}
+
+	var CartoDB_Voyager = L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+		attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
+		subdomains: 'abcd',
+		maxZoom: 19
+	});
+
+	var OpenStreetMap_BlackAndWhite = L.tileLayer('http://{s}.tiles.wmflabs.org/bw-mapnik/{z}/{x}/{y}.png', {
+		maxZoom: 18,
+		attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+	});
+   
+	var map = new L.Map("map", {
+		center: new L.LatLng(48.825, 2.27),
+		zoom: 15,
+		layers: [CartoDB_Voyager],
+	});
+	
+	var cats = [];
+	for (var i = 0; i < geojson.length; i++) {
+		var cat = getCat(cats, geojson[i].properties.categorie2);
+		if (cat === undefined) {
+			cat = {
+				"interestPoints" : createInterestPoints(),
+				"id" : "cat" + i,
+				"label" : geojson[i].properties.categorie2
+			}
+			cats.push(cat);
+		}
+		cat["interestPoints"].addData(geojson[i]);
+	}
+	
+	//map.fitBounds(interestPoints.getBounds());
+	
+	// Icons from : https://templatic.com/newsblog/100-free-templatic-map-icons/
+	
+	var command = L.control({position: 'bottomleft'});
+	command.onAdd = function (map) {
+		var div = L.DomUtil.create('div', 'command');
+		div.innerHTML += '<div style="text-align:center;padding:24px;"><span style="font-size:18px;" onClick="$(\"\")"><img src="https://www.issy.com/themes/custom/issy/assets/images/logos/issy_logo.svg" style="height:40px;"/> Issy-les-Moulineaux</span><br /><span style="color:grey;font-size:14px;"></span></div><div id="toggles">';
+		for (var i = 0; i < cats.length; i++) {
+			div.innerHTML += '<form style="padding:2px 6px;"><input id="' + cats[i]["id"] + '" type="checkbox"/> ' + cats[i]["label"] + '</form>';
+		}
+		div.innerHTML += '</div><!-- end #toggles --><div style="padding:12px 0 20px;font-size:0.8em;text-align:center">Carte-locale, IdéesCulture 2021</div>'
+		return div;
+	};
+
+	command.addTo(map);
+	for (var i = 0; i < cats.length; i++) {
+		document.getElementById(cats[i]["id"]).addEventListener("click", handleCommand, false);
+	}
+	
+	function handleCommand() {
+		var selectedCat;
+		for (var i = 0; i < cats.length; i++) {
+			if (cats[i]["id"] === this.id) {
+				selectedCat = cats[i];
+				break;
+			}
+		}
+		if (this.checked) {
+			selectedCat["interestPoints"].addTo(map);
+		} else {
+			map.removeLayer(selectedCat["interestPoints"]);
+		}
+	}
+	
+	function getCat(cats, cat) {
+		for (var i = 0; i < cats.length; i++) {
+			if (cats[i]["label"] === cat) {
+				return cats[i];
+			}
+		}
+		return ;
+	}
+	
+	function createInterestPoints () {
+		return new L.geoJson([], {
+			pointToLayer: function(feature, latlng) {
+				var smallIcon = L.icon({
+					iconUrl: "maps/leaflet-control/" + /*icon-provider.js*/getIcon(feature.properties.categorie1, feature.properties.categorie2, feature.properties.categorie3),
+					//shadowUrl: 'icon-shadow.png',
+					iconSize:     [33, 44], // taille de l'icone
+					//shadowSize:   [50, 64], // taille de l'ombre
+					iconAnchor:   [16, 44], // point de l'icone qui correspondra à la position du marker
+					//shadowAnchor: [32, 64],  // idem pour l'ombre
+					popupAnchor:  [-3, -76] // point depuis lequel la popup doit s'ouvrir relativement à l'iconAnchor
+				});
+				return L.marker(latlng, {icon: smallIcon});
+			},
+			onEachFeature: function(feature, layer) {
+				var html = '';
+				if (feature.properties.titre) {
+					html += '<b>' + feature.properties.titre + '</b></br>';
+				}
+				if (feature.properties.description) {
+					html += '' + feature.properties.description + '</br>';
+				}
+				if (feature.properties.url) {
+					html += '<a href="' + feature.properties.url + '" target="_blank">Site Internet</a></br>';
+				}
+				if (feature.properties.categorie1) {
+					//html += 'Catégorie 1 : ' + feature.properties.categorie1 + '</br>';
+				}
+				if (feature.properties.categorie2) {
+					//html += 'Catégorie 2 : ' + feature.properties.categorie2 + '</br>';
+				}
+				if (feature.properties.categorie3) {
+					//html += 'Catégorie 3 : ' + feature.properties.categorie3 + '</br>';
+				}
+				layer.bindPopup(html);
+			}
+		});
+	}
+
+	document.getElementById("cat0").click();
+</script>
+</body>
+
+</html>
+
